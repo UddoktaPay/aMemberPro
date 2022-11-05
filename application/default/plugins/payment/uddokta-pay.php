@@ -80,7 +80,7 @@ class Am_Paysystem_UddoktaPay extends Am_Paysystem_Abstract
 
     public function _process($invoice, $request, $result)
     {
-        $req = new Am_HttpRequest($this->getEndpoint('checkout'), Am_HttpRequest::METHOD_POST);
+        $req = new Am_HttpRequest($this->getEndpoint('checkout-v2'), Am_HttpRequest::METHOD_POST);
         $req->setHeader('RT-UDDOKTAPAY-API-KEY', $this->getConfig('api_key'));
         $req->setHeader('content-type', 'application/json');
         $req->setBody(json_encode([
@@ -88,9 +88,10 @@ class Am_Paysystem_UddoktaPay extends Am_Paysystem_Abstract
             'full_name' => $invoice->getUser()->getName(),
             'email' => $invoice->getUser()->getEmail(),
             'metadata' => [
-                'order_id' => $invoice->public_id
+                'order_id' => $invoice->public_id,
+                'success_url'   => $this->getReturnUrl()
             ],
-            'redirect_url' => $this->getReturnUrl(),
+            'redirect_url' => $this->getPluginUrl('ipn'),
             'cancel_url' => $this->getCancelUrl(),
             'webhook_url' => $this->getPluginUrl('ipn'),
         ]));
@@ -151,6 +152,7 @@ class Am_Paysystem_Transaction_UddoktaPay extends Am_Paysystem_Transaction_Incom
         if ($id = $this->request->getFiltered('invoice_id')) {
             $this->payment = $this->getPlugin()->getPayment($id);
             $this->log->add($this->payment);
+            header("Location:" . $this->payment['metadata']['success_url']);
         }
         return parent::validate();
     }
